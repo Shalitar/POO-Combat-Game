@@ -1,83 +1,127 @@
 <?php
+
+// Définition des caractéristiques communes à tous les personnages
 class Personnage {
-    private $nom;
-    private $points_de_vie;
-    private $points_d_attaque;
+    public $pointsDeVie;
+    public $pointsDAttaque;
+    public $armure;
 
-    public function __construct($nom, $points_de_vie, $points_d_attaque) {
-        $this->nom = $nom;
-        $this->points_de_vie = $points_de_vie;
-        $this->points_d_attaque = $points_d_attaque;
-    }
-
-    public function getNom() {
-        return $this->nom;
-    }
-
-    public function getPointsDeVie() {
-        return $this->points_de_vie;
-    }
-
-    public function getPointsDAttaque() {
-        return $this->points_d_attaque;
+    public function __construct($pointsDeVie, $pointsDAttaque, $armure) {
+        $this->pointsDeVie = $pointsDeVie;
+        $this->pointsDAttaque = $pointsDAttaque;
+        $this->armure = $armure;
     }
 
     public function attaquer(Personnage $cible) {
-        $cible->subirDegats($this->points_d_attaque);
+        $degats = max(0, $this->pointsDAttaque - $cible->armure);
+        $cible->prendreDegats($degats);
     }
 
-    public function subirDegats($degats) {
-        $this->points_de_vie -= $degats;
+    public function prendreDegats($degats) {
+        $degats = max(0, $degats - $this->armure);
+        $this->pointsDeVie -= $degats;
     }
 
     public function estVivant() {
-        return $this->points_de_vie > 0;
+        return $this->pointsDeVie > 0;
     }
 }
 
-class Combat {
-    private $heros;
-    private $ennemis;
+// Définition du héros
+class Heros extends Personnage {
+    public $bonusVie;
+    public $bonusArmure;
 
-    public function __construct(Personnage $heros, array $ennemis) {
-        $this->heros = $heros;
-        $this->ennemis = $ennemis;
+    public function __construct() {
+        parent::__construct(200, 15, 0);
+        $this->bonusVie = 0;
+        $this->bonusArmure = 0;
     }
 
-    public function lancer() {
-        echo "Un combat épique commence entre " . $this->heros->getNom() . " et les ennemis !" . PHP_EOL;
-        while ($this->heros->estVivant() && count($this->ennemis) > 0) {
-            $cible = $this->ennemis[array_rand($this->ennemis)];
-            $this->heros->attaquer($cible);
-            if (!$cible->estVivant()) {
-                echo $cible->getNom() . " a été vaincu !" . PHP_EOL;
-                $key = array_search($cible, $this->ennemis);
-                unset($this->ennemis[$key]);
-                $this->ennemis = array_values($this->ennemis);
-            } else {
-                foreach ($this->ennemis as $ennemi) {
-                    if ($ennemi->estVivant()) {
-                        $ennemi->attaquer($this->heros);
-                    }
-                }
-            }
-        }
-        if ($this->heros->estVivant()) {
-            echo "Bravo ! " . $this->heros->getNom() . " a remporté la victoire !" . PHP_EOL;
-        } else {
-            echo "Oh non ! " . $this->heros->getNom() . " a été vaincu !" . PHP_EOL;
-        }
+    public function prendreBonusVie($valeur) {
+        $this->bonusVie = $valeur;
+        $this->pointsDeVie += $valeur;
+    }
+
+    public function prendreBonusArmure($valeur) {
+        $this->bonusArmure = $valeur;
+        $this->armure += $valeur;
+    }
+
+    public function enleverBonusArmure() {
+        $this->armure -= $this->bonusArmure;
+        $this->bonusArmure = 0;
     }
 }
 
-// Exemple d'utilisation :
-$heros = new Personnage("Héros", 150, 20);
-$ennemis = [
-    new Personnage("Ennemi 1", 50, 10),
-    new Personnage("Ennemi 2", 60, 12),
-    new Personnage("Ennemi 3", 70, 15),
-];
+// Définition des ennemis
+class Minion extends Personnage {
+    public function __construct() {
+        parent::__construct(10, 10, 0);
+    }
+}
 
-$combat = new Combat($heros, $ennemis);
-$combat->lancer();
+class LieutenantMinion extends Personnage {
+    public function __construct() {
+        parent::__construct(30, 30, 0);
+    }
+}
+
+class ChefMinion extends Personnage {
+    public function __construct() {
+        parent::__construct(100, 100, 0);
+    }
+}
+
+// Déroulement du combat
+$hero = new Heros();
+$minion1 = new Minion();
+$minion2 = new Minion();
+$lieutenant = new LieutenantMinion();
+$chef = new ChefMinion();
+
+echo "Début du combat !" . PHP_EOL;
+
+// Le héros attaque le premier minion
+$hero->attaquer($minion1);
+if (!$minion1->estVivant()) {
+    echo "Le minion est mort." . PHP_EOL;
+}
+
+// Le premier ennemi attaque le héros
+$minion1->attaquer($hero);
+if (!$hero->estVivant()) {
+    echo "Le héros est mort." . PHP_EOL;
+}
+
+// Le héros prend un bonus de vie
+$hero->prendreBonusVie(50);
+
+// Le deuxième ennemi attaque le héros
+$minion2->attaquer($hero);
+if (!$hero->estVivant()) {
+    echo "héros est mort." . PHP_EOL;
+}
+
+// Le héros prend un bonus d'armure
+$hero->prendreBonusArmure(20);
+
+// Le lieutenant ennemi attaque le héros
+$lieutenant->attaquer($hero);
+if (!$hero->estVivant()) {
+echo "Le héros est mort." . PHP_EOL;
+}
+
+// Le héros enlève le bonus d'armure
+$hero->enleverBonusArmure();
+
+// Le chef ennemi attaque le héros
+$chef->attaquer($hero);
+if (!$hero->estVivant()) {
+echo "Le héros est mort." . PHP_EOL;
+}
+
+// Fin du combat
+echo "Fin du combat !" . PHP_EOL;
+
 ?>
